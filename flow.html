@@ -5,32 +5,128 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Enhanced Classical Cryptography System (With Confusion)</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 2rem; }
-  textarea, input, button { font-size: 1rem; margin: 0.5rem 0; width: 100%; }
-  #logs { white-space: pre-wrap; background: #f0f0f0; padding: 1rem; height: 200px; overflow-y: auto; }
-  button { width: auto; padding: 0.5rem 1rem; margin-right: 1rem; }
-  #result { margin-top: 1rem; font-weight: bold; }
+  body { 
+    font-family: Arial, sans-serif; 
+    margin: 2rem;
+    background: #f5f5f5;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  textarea, input { 
+    font-size: 1rem; 
+    margin: 0.5rem 0; 
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  .flow-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 2rem 0;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  .flow-step {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid #3498db;
+    margin: 0.5rem 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .flow-arrow {
+    text-align: center;
+    color: #666;
+    font-size: 1.5rem;
+    margin: 0.5rem 0;
+  }
+  .button-group {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  button { 
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  button:hover {
+    background: #2980b9;
+  }
+  #logs { 
+    white-space: pre-wrap; 
+    background: #f8f9fa; 
+    padding: 1rem; 
+    height: 200px; 
+    overflow-y: auto;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    font-family: monospace;
+  }
+  #result { 
+    margin-top: 1rem; 
+    font-weight: bold;
+    padding: 1rem;
+    background: #e8f4fd;
+    border-radius: 4px;
+  }
 </style>
 </head>
 <body>
+<div class="container">
+  <h2>Enhanced Classical Cryptography System (with Confusion)</h2>
 
-<h2>Enhanced Classical Cryptography System (with Confusion)</h2>
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <h4>Step 1: Key Confusion</h4>
+      <p>Original key is modified by shifting each character's ASCII value by +1</p>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">
+      <h4>Step 2: Vigenère Encryption</h4>
+      <p>Message is encrypted using the confused key with Vigenère cipher</p>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">
+      <h4>Step 3: ASCII Encryption</h4>
+      <p>Result is further encrypted using ASCII-based encryption</p>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">
+      <h4>Step 4: Diffusion</h4>
+      <p>Final step reverses the string for added security</p>
+    </div>
+  </div>
 
-<label for="messageInput">Message / Cipher Text:</label>
-<textarea id="messageInput" rows="3"></textarea>
+  <label for="messageInput">Message / Cipher Text:</label>
+  <textarea id="messageInput" rows="3" placeholder="Enter your message here..."></textarea>
 
-<label for="keyInput">Key:</label>
-<input type="text" id="keyInput" />
+  <label for="keyInput">Key:</label>
+  <input type="text" id="keyInput" placeholder="Enter encryption key..." />
 
-<div>
-  <button onclick="onEncryptClicked()">Encrypt</button>
-  <button onclick="onDecryptClicked()">Decrypt</button>
+  <div class="button-group">
+    <button onclick="onEncryptClicked()">Encrypt</button>
+    <button onclick="onDecryptClicked()">Decrypt</button>
+  </div>
+
+  <h3>Process Output:</h3>
+  <div id="logs"></div>
+
+  <h3 id="result"></h3>
 </div>
-
-<h3>Process Output:</h3>
-<div id="logs"></div>
-
-<h3 id="result"></h3>
 
 <script>
 /* --- Confusion: Modify key --- */
@@ -61,9 +157,9 @@ function generateFullKey(message, key) {
 function vigenereEncrypt(message, key) {
   let result = '';
   for (let i = 0; i < message.length; i++) {
-    const m = message.charCodeAt(i) - 32;
-    const k = key.charCodeAt(i % key.length) - 32;
-    result += String.fromCharCode(((m + k) % 95) + 32);
+    const m = message.charCodeAt(i) - 65; // A=0
+    const k = key.charCodeAt(i % key.length) - 65;
+    result += String.fromCharCode(((m + k) % 26) + 65);
   }
   return result;
 }
@@ -71,9 +167,9 @@ function vigenereEncrypt(message, key) {
 function vigenereDecrypt(cipher, key) {
   let result = '';
   for (let i = 0; i < cipher.length; i++) {
-    const c = cipher.charCodeAt(i) - 32;
-    const k = key.charCodeAt(i % key.length) - 32;
-    result += String.fromCharCode(((c - k + 95) % 95) + 32);
+    const c = cipher.charCodeAt(i) - 65;
+    const k = key.charCodeAt(i % key.length) - 65;
+    result += String.fromCharCode(((c - k + 26) % 26) + 65);
   }
   return result;
 }
