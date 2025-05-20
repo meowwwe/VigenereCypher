@@ -107,7 +107,6 @@
   <select id="mode">
     <option value="vigenere">Basic Vigenère Cipher (A-Z only)</option>
     <option value="ascii">ASCII Cipher (printable characters 32-126)</option>
-    <option value="enhanced">Enhanced Vigenère with Confusion & Diffusion</option>
   </select>
 
   <label for="inputText">Message / Cipher Text:</label>
@@ -203,66 +202,6 @@
       return result;
     }
 
-    // Confusion: shuffle key chars by simple hash
-    function confuseKey(key) {
-      let arr = key.split('');
-      for (let i = arr.length - 1; i > 0; i--) {
-        let j = (key.charCodeAt(i) + i) % arr.length;
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr.join('');
-    }
-
-    // Diffusion: reverse text + char code shift
-    function diffuseText(text) {
-      let reversed = text.split('').reverse().join('');
-      let shifted = '';
-      for (let i = 0; i < reversed.length; i++) {
-        // shift char code by position mod 26 for letters, else keep as is
-        let c = reversed.charCodeAt(i);
-        if (c >= 65 && c <= 90) { // A-Z
-          shifted += String.fromCharCode(65 + ((c - 65 + i) % 26));
-        } else if (c >= 97 && c <= 122) { // a-z
-          shifted += String.fromCharCode(97 + ((c - 97 + i) % 26));
-        } else {
-          shifted += reversed[i];
-        }
-      }
-      return shifted;
-    }
-
-    function reverseDiffuseText(text) {
-      // inverse diffusion: reverse shift then reverse string
-      let unshifted = '';
-      for (let i = 0; i < text.length; i++) {
-        let c = text.charCodeAt(i);
-        if (c >= 65 && c <= 90) { // A-Z
-          unshifted += String.fromCharCode(65 + ((c - 65 - i + 26) % 26));
-        } else if (c >= 97 && c <= 122) { // a-z
-          unshifted += String.fromCharCode(97 + ((c - 97 - i + 26) % 26));
-        } else {
-          unshifted += text[i];
-        }
-      }
-      return unshifted.split('').reverse().join('');
-    }
-
-    // Enhanced Vigenere Encrypt
-    function enhancedEncrypt(message, key) {
-      if (!message || !key) return '';
-      let confusedKey = confuseKey(key);
-      let vigenere = vigenereEncrypt(message, confusedKey);
-      return diffuseText(vigenere);
-    }
-
-    // Enhanced Vigenere Decrypt
-    function enhancedDecrypt(cipher, key) {
-      if (!cipher || !key) return '';
-      let confusedKey = confuseKey(key);
-      let reversed = reverseDiffuseText(cipher);
-      return vigenereDecrypt(reversed, confusedKey);
-    }
-
     // UI interactions
     const encryptBtn = document.getElementById('encryptBtn');
     const decryptBtn = document.getElementById('decryptBtn');
@@ -293,9 +232,6 @@
         case 'ascii':
           result = asciiEncrypt(message, key);
           break;
-        case 'enhanced':
-          result = enhancedEncrypt(message, key);
-          break;
       }
       outputText.value = result;
     });
@@ -321,9 +257,6 @@
           break;
         case 'ascii':
           result = asciiDecrypt(cipher, key);
-          break;
-        case 'enhanced':
-          result = enhancedDecrypt(cipher, key);
           break;
       }
       outputText.value = result;
