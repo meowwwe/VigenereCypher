@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Classical Cryptography System</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; max-width: 700px; }
+    label, select, textarea, input, button { display: block; width: 100%; margin-bottom: 1rem; }
+    textarea { height: 100px; font-family: monospace; }
+    button { width: auto; padding: 0.5rem 1rem; }
+  </style>
+</head>
+<body>
+
+  <h1>Classical Cryptography System</h1>
+
+  <label for="mode">Select Mode:</label>
+  <select id="mode">
+    <option value="vigenere">Basic Vigenère Cipher (A-Z only)</option>
+    <option value="ascii">ASCII Cipher (printable characters 32-126)</option>
+    <option value="enhanced">Enhanced Vigenère with Confusion & Diffusion</option>
+  </select>
+
+  <label for="key">Key:</label>
+  <input type="text" id="key" placeholder="Enter encryption key" />
+
+  <label for="inputText">Input Text:</label>
+  <textarea id="inputText" placeholder="Enter your message here"></textarea>
+
+  <button id="encryptBtn">Encrypt</button>
+  <button id="decryptBtn">Decrypt</button>
+
+  <label for="outputText">Output Text:</label>
+  <textarea id="outputText" readonly></textarea>
+
+  <script>
+    // Basic Vigenère Cipher (A-Z only)
+    function generateVigenereTable() {
+      let table = [];
+      for (let i = 0; i < 26; i++) {
+        let row = [];
+        for (let j = 0; j < 26; j++) {
+          row.push(String.fromCharCode(((i + j) % 26) + 65));
+        }
+        table.push(row);
+      }
+      return table;
+    }
+
+    function repeatKey(message, key) {
+      let fullKey = '';
+      for (let i = 0; i < message.length; i++) {
+        fullKey += key[i % key.length];
+      }
+      return fullKey;
+    }
+
+    function vigenereEncrypt(message, key) {
+      message = message.toUpperCase().replace(/[^A-Z]/g, '');
+      key = key.toUpperCase().replace(/[^A-Z]/g, '');
+      if (!message || !key) return '';
+
+      const table = generateVigenereTable();
+      const fullKey = repeatKey(message, key);
+      let cipher = '';
+
+      for (let i = 0; i < message.length; i++) {
+        let row = fullKey.charCodeAt(i) - 65;
+        let col = message.charCodeAt(i) - 65;
+        cipher += table[row][col];
+      }
+      return cipher;
+    }
+
+    function vigenereDecrypt(cipher, key) {
+      cipher = cipher.toUpperCase().replace(/[^A-Z]/g, '');
+      key = key.toUpperCase().replace(/[^A-Z]/g, '');
+      if (!cipher || !key) return '';
+
+      const table = generateVigenereTable();
+      const fullKey = repeatKey(cipher, key);
+      let message = '';
+
+      for (let i = 0; i < cipher.length; i++) {
+        let row = fullKey.charCodeAt(i) - 65;
+        let col = table[row].indexOf(cipher[i]);
+        message += String.fromCharCode(col + 65);
+      }
+      return message;
+    }
+
+    // ASCII Cipher (printable chars 32-126)
+    function asciiEncrypt(message, key) {
+      let result = '';
+      for (let i = 0; i < message.length; i++) {
+        const m = message.charCodeAt(i) - 32;
+        const k = key.charCodeAt(i % key.length) - 32;
+        result += String.fromCharCode(((m + k) % 95) + 32);
+      }
+      return result;
+    }
+
+    function asciiDecrypt(cipher, key) {
+      let result = '';
+      for (let i = 0; i < cipher.length; i++) {
+        const c = cipher.charCodeAt(i) - 32;
+        const k = key.charCodeAt(i % key.length) - 32;
+        result += String.fromCharCode(((c - k + 95) % 95) + 32);
+      }
+      return result;
+    }
+
+    // Confusion: shuffle key chars by simple hash
+    function confuseKey(key) {
+      let arr = key.split('');
+      for (let i = arr.length - 1; i > 0; i--) {
+        let j = (key.charCodeAt(i) + i) % arr.length;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr.join('');
+    }
+
+    // Diffusion: reverse text + char code shift
+    function diffuseText(text) {
+      let reversed = text.split('').reverse().join('');
+      let shifted = '';
+      for (let i = 0; i < reversed.length; i++) {
+        // shift char code by position mod 26 for letters, else keep as is
+        let c = reversed.charCodeAt(i);
+        if (c >= 65 && c <= 90) { // A-Z
+          shifted += String.fromCharCode(65 + ((c - 65 + i) % 26));
+        } else if (c >= 97 && c <= 122) { // a-z
+          shifted += String.fromCharCode(97 + ((c - 97 + i) % 26));
+        } else {
+          shifted += reversed[i];
+        }
+      }
+      return shifted;
+    }
+
+    function reverseDiffuseText(text) {
+      // inverse diffusion: reverse shift then reverse string
+      let unshifted = '';
+      for (let i = 0; i < text.length; i++) {
+        let c = text.charCodeAt(i);
+        if (c >= 65 && c <= 90) { // A-Z
+          unshifted += String.fromCharCode(65 + ((c - 65 - i + 26) % 26));
+        } else if (c >= 97 && c <= 122) { // a-z
+          unshifted += String.fromCharCode(97 + ((c - 97 - i + 26) % 26));
+        } else {
+          unshifted += text[i];
+        }
+      }
+      return unshifted.split('').reverse().join('');
+    }
+
+    // Enhanced Vigenere Encrypt
+    function enhancedEncrypt(message, key) {
+      if (!message || !key) return '';
+      let confusedKey = confuseKey(key);
+      let vigenere = vigenereEncrypt(message, confusedKey);
+      return diffuseText(vigenere);
+    }
+
+    // Enhanced Vigenere Decrypt
+    function enhancedDecrypt(cipher, key) {
+      if (!cipher || !key) return '';
+      let confusedKey = confuseKey(key);
+      let reversed = reverseDiffuseText(cipher);
+      return vigenereDecrypt(reversed, confusedKey);
+    }
+
+    // UI interactions
+    const encryptBtn = document.getElementById('encryptBtn');
+    const decryptBtn = document.getElementById('decryptBtn');
+    const modeSelect = document.getElementById('mode');
+    const keyInput = document.getElementById('key');
+    const inputText = document.getElementById('inputText');
+    const outputText = document.getElementById('outputText');
+
+    encryptBtn.addEventListener('click', () => {
+      const mode = modeSelect.value;
+      const key = keyInput.value.trim();
+      const message = inputText.value;
+      let result = '';
+
+      if (!key) {
+        alert('Please enter a key.');
+        return;
+      }
+      if (!message) {
+        alert('Please enter input text.');
+        return;
+      }
+
+      switch (mode) {
+        case 'vigenere':
+          result = vigenereEncrypt(message, key);
+          break;
+        case 'ascii':
+          result = asciiEncrypt(message, key);
+          break;
+        case 'enhanced':
+          result = enhancedEncrypt(message, key);
+          break;
+      }
+      outputText.value = result;
+    });
+
+    decryptBtn.addEventListener('click', () => {
+      const mode = modeSelect.value;
+      const key = keyInput.value.trim();
+      const cipher = inputText.value;
+      let result = '';
+
+      if (!key) {
+        alert('Please enter a key.');
+        return;
+      }
+      if (!cipher) {
+        alert('Please enter input text.');
+        return;
+      }
+
+      switch (mode) {
+        case 'vigenere':
+          result = vigenereDecrypt(cipher, key);
+          break;
+        case 'ascii':
+          result = asciiDecrypt(cipher, key);
+          break;
+        case 'enhanced':
+          result = enhancedDecrypt(cipher, key);
+          break;
+      }
+      outputText.value = result;
+    });
+  </script>
+
+</body>
+</html>
