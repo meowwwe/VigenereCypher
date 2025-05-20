@@ -5,30 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Combined Classical Cryptography</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; max-width: 700px; }
-    label, textarea, input, button { display: block; width: 100%; margin-bottom: 1rem; }
-    textarea { height: 100px; font-family: monospace; }
-    button { width: auto; padding: 0.5rem 1rem; }
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    textarea, input, button { font-size: 1rem; margin: 0.5rem 0; width: 100%; }
+    #logs { white-space: pre-wrap; background: #f0f0f0; padding: 1rem; height: 200px; overflow-y: auto; }
+    button { width: auto; padding: 0.5rem 1rem; margin-right: 1rem; }
+    #result { margin-top: 1rem; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <h1>Combined Classical Cryptography System</h1>
 
-  <label for="key">Key:</label>
-  <input type="text" id="key" placeholder="Enter encryption key" />
+  <label for="messageInput">Message / Cipher Text:</label>
+  <textarea id="messageInput" rows="3"></textarea>
 
-  <label for="inputText">Input Text:</label>
-  <textarea id="inputText" placeholder="Enter your message here"></textarea>
+  <label for="keyInput">Key:</label>
+  <input type="text" id="keyInput" />
 
-  <button id="encryptBtn">Encrypt</button>
-  <button id="decryptBtn">Decrypt</button>
+  <div>
+    <button onclick="onEncryptClicked()">Encrypt</button>
+    <button onclick="onDecryptClicked()">Decrypt</button>
+  </div>
 
-  <label for="outputText">Output Text:</label>
-  <textarea id="outputText" readonly></textarea>
+  <h3 id="result"></h3>
 
   <script>
-    // --- Vigenère cipher (A-Z only) ---
     function generateVigenereTable() {
       let table = [];
       for (let i = 0; i < 26; i++) {
@@ -40,6 +41,7 @@
       }
       return table;
     }
+
     function repeatKey(message, key) {
       let fullKey = '';
       for (let i = 0; i < message.length; i++) {
@@ -47,40 +49,27 @@
       }
       return fullKey;
     }
+
     function vigenereEncrypt(message, key) {
-      message = message.toUpperCase().replace(/[^A-Z]/g, '');
-      key = key.toUpperCase().replace(/[^A-Z]/g, '');
-      if (!message || !key) return '';
-
-      const table = generateVigenereTable();
-      const fullKey = repeatKey(message, key);
-      let cipher = '';
-
+      let result = '';
       for (let i = 0; i < message.length; i++) {
-        let row = fullKey.charCodeAt(i) - 65;
-        let col = message.charCodeAt(i) - 65;
-        cipher += table[row][col];
+        const m = message.charCodeAt(i) - 32;
+        const k = key.charCodeAt(i % key.length) - 32;
+        result += String.fromCharCode(((m + k) % 95) + 32);
       }
-      return cipher;
+      return result;
     }
+
     function vigenereDecrypt(cipher, key) {
-      cipher = cipher.toUpperCase().replace(/[^A-Z]/g, '');
-      key = key.toUpperCase().replace(/[^A-Z]/g, '');
-      if (!cipher || !key) return '';
-
-      const table = generateVigenereTable();
-      const fullKey = repeatKey(cipher, key);
-      let message = '';
-
+      let result = '';
       for (let i = 0; i < cipher.length; i++) {
-        let row = fullKey.charCodeAt(i) - 65;
-        let col = table[row].indexOf(cipher[i]);
-        message += String.fromCharCode(col + 65);
+        const c = cipher.charCodeAt(i) - 32;
+        const k = key.charCodeAt(i % key.length) - 32;
+        result += String.fromCharCode(((c - k + 95) % 95) + 32);
       }
-      return message;
+      return result;
     }
 
-    // --- ASCII Cipher (printable chars 32-126) ---
     function asciiEncrypt(message, key) {
       let result = '';
       for (let i = 0; i < message.length; i++) {
@@ -90,6 +79,7 @@
       }
       return result;
     }
+
     function asciiDecrypt(cipher, key) {
       let result = '';
       for (let i = 0; i < cipher.length; i++) {
@@ -100,110 +90,95 @@
       return result;
     }
 
-    // --- Confusion (shuffle key chars) ---
-    function confuseKey(key) {
-      let arr = key.split('');
-      for (let i = arr.length - 1; i > 0; i--) {
-        let j = (key.charCodeAt(i) + i) % arr.length;
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+    function confuseKey(originalKey) {
+      let confused = '';
+      for (let i = 0; i < originalKey.length; i++) {
+        confused += String.fromCharCode((originalKey.charCodeAt(i) + 1) % 127);
       }
-      return arr.join('');
+      return confused;
     }
 
-    // --- Diffusion (reverse + shift letters) ---
+    function deconfuseKey(confusedKey) {
+      let original = '';
+      for (let i = 0; i < confusedKey.length; i++) {
+        original += String.fromCharCode((confusedKey.charCodeAt(i) - 1 + 127) % 127);
+      }
+      return original;
+    }
+
     function diffuseText(text) {
-      let reversed = text.split('').reverse().join('');
-      let shifted = '';
-      for (let i = 0; i < reversed.length; i++) {
-        let c = reversed.charCodeAt(i);
-        if (c >= 65 && c <= 90) { // A-Z
-          shifted += String.fromCharCode(65 + ((c - 65 + i) % 26));
-        } else if (c >= 97 && c <= 122) { // a-z
-          shifted += String.fromCharCode(97 + ((c - 97 + i) % 26));
-        } else {
-          shifted += reversed[i];
-        }
-      }
-      return shifted;
+      return text.split('').reverse().join('');
     }
+
     function reverseDiffuseText(text) {
-      let unshifted = '';
-      for (let i = 0; i < text.length; i++) {
-        let c = text.charCodeAt(i);
-        if (c >= 65 && c <= 90) { // A-Z
-          unshifted += String.fromCharCode(65 + ((c - 65 - i + 26) % 26));
-        } else if (c >= 97 && c <= 122) { // a-z
-          unshifted += String.fromCharCode(97 + ((c - 97 - i + 26) % 26));
-        } else {
-          unshifted += text[i];
-        }
-      }
-      return unshifted.split('').reverse().join('');
+      return text.split('').reverse().join('');
     }
 
-    // --- Combined encryption ---
-    // Encryption order: Vigenere -> ASCII -> Confuse+Diffuse
-    function combinedEncrypt(message, key) {
-    if (!message || !key) return '';
-    // 1. Vigenere encrypt on letters only (message forced uppercase letters)
-    const step1 = vigenereEncrypt(message, key);
-    // 2. ASCII encrypt on full ASCII range using key
-    const step2 = asciiEncrypt(step1, key);
-    // 3. Confuse key (internally) and diffuse text
-    const step3 = diffuseText(step2);
-    return step3;
+    function combinedEncryptWithSteps(message, key) {
+      let logs = [];
+      logs.push(`Original Message: "${message}"`);
+      logs.push(`Original Key: "${key}"`);
+
+      const confusedKey = confuseKey(key);
+      logs.push(`Confused Key (+1 ASCII): "${confusedKey}"`);
+
+      const step1 = vigenereEncrypt(message, confusedKey);
+      logs.push(`Step 1 - Vigenère Encrypt (A–Z only): "${step1}"`);
+
+      const step2 = asciiEncrypt(step1, confusedKey);
+      logs.push(`Step 2 - ASCII Encrypt: "${step2}"`);
+
+      const step3 = diffuseText(step2);
+      logs.push(`Step 3 - Diffusion (Reverse): "${step3}"`);
+
+      return { result: step3, logs };
     }
 
-    // --- Combined decryption ---
-    // Decryption order: Reverse Diffuse -> ASCII decrypt -> Vigenere decrypt
-    function combinedDecrypt(cipher, key) {
-    if (!cipher || !key) return '';
-    // 1. Reverse diffusion
-    const step1 = reverseDiffuseText(cipher);
-    // 2. ASCII decrypt
-    const step2 = asciiDecrypt(step1, key);
-    // 3. Vigenere decrypt on uppercase letters only
-    const step3 = vigenereDecrypt(step2, key);
-    return step3;
+    function combinedDecryptWithSteps(cipher, key) {
+      let logs = [];
+      logs.push(`Cipher Text: "${cipher}"`);
+      logs.push(`Original Key: "${key}"`);
+
+      const confusedKey = confuseKey(key);
+      logs.push(`Confused Key (+1 ASCII): "${confusedKey}"`);
+
+      const step1 = reverseDiffuseText(cipher);
+      logs.push(`Step 1 - Reverse Diffusion: "${step1}"`);
+
+      const step2 = asciiDecrypt(step1, confusedKey);
+      logs.push(`Step 2 - ASCII Decrypt: "${step2}"`);
+
+      const step3 = vigenereDecrypt(step2, confusedKey);
+      logs.push(`Step 3 - Vigenère Decrypt (A–Z only): "${step3}"`);
+
+      return { result: step3, logs };
     }
 
-    // --- UI ---
-    const encryptBtn = document.getElementById('encryptBtn');
-    const decryptBtn = document.getElementById('decryptBtn');
-    const keyInput = document.getElementById('key');
-    const inputText = document.getElementById('inputText');
-    const outputText = document.getElementById('outputText');
+    function onEncryptClicked() {
+      const message = document.getElementById('messageInput').value;
+      const key = document.getElementById('keyInput').value;
 
-    encryptBtn.addEventListener('click', () => {
-      const key = keyInput.value.trim();
-      const message = inputText.value;
-      if (!key) {
-        alert('Please enter a key.');
+      if (!message || !key) {
+        alert('Please enter both message and key.');
         return;
       }
-      if (!message) {
-        alert('Please enter input text.');
-        return;
-      }
-      const cipher = combinedEncrypt(message, key);
-      outputText.value = cipher;
-    });
 
-    decryptBtn.addEventListener('click', () => {
-      const key = keyInput.value.trim();
-      const cipher = inputText.value;
-      if (!key) {
-        alert('Please enter a key.');
+      const { result } = combinedEncryptWithSteps(message, key);
+      document.getElementById('result').textContent = `Encrypted Text: ${result}`;
+    }
+
+    function onDecryptClicked() {
+      const cipher = document.getElementById('messageInput').value;
+      const key = document.getElementById('keyInput').value;
+
+      if (!cipher || !key) {
+        alert('Please enter both cipher text and key.');
         return;
       }
-      if (!cipher) {
-        alert('Please enter input text.');
-        return;
-      }
-      const message = combinedDecrypt(cipher, key);
-      outputText.value = message;
-    });
+
+      const { result } = combinedDecryptWithSteps(cipher, key);
+      document.getElementById('result').textContent = `Decrypted Text: ${result}`;
+    }
   </script>
-
 </body>
 </html>

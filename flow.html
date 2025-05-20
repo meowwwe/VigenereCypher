@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Enhanced Classical Cryptography System</title>
+<title>Enhanced Classical Cryptography System (With Confusion)</title>
 <style>
   body { font-family: Arial, sans-serif; margin: 2rem; }
   textarea, input, button { font-size: 1rem; margin: 0.5rem 0; width: 100%; }
@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<h2>Enhanced Classical Cryptography System</h2>
+<h2>Enhanced Classical Cryptography System (with Confusion)</h2>
 
 <label for="messageInput">Message / Cipher Text:</label>
 <textarea id="messageInput" rows="3"></textarea>
@@ -33,7 +33,23 @@
 <h3 id="result"></h3>
 
 <script>
-/* --- Vigenere Cipher --- */
+/* --- Confusion: Modify key --- */
+function confuseKey(originalKey) {
+  let confused = '';
+  for (let i = 0; i < originalKey.length; i++) {
+    confused += String.fromCharCode((originalKey.charCodeAt(i) + 1) % 127);
+  }
+  return confused;
+}
+function deconfuseKey(confusedKey) {
+  let original = '';
+  for (let i = 0; i < confusedKey.length; i++) {
+    original += String.fromCharCode((confusedKey.charCodeAt(i) - 1 + 127) % 127);
+  }
+  return original;
+}
+
+/* --- Vigenère Cipher --- */
 function generateFullKey(message, key) {
   let fullKey = '';
   for (let i = 0; i < message.length; i++) {
@@ -43,30 +59,26 @@ function generateFullKey(message, key) {
 }
 
 function vigenereEncrypt(message, key) {
-  const msg = message.toUpperCase().replace(/[^A-Z]/g, '');
-  const fullKey = generateFullKey(msg, key);
-  let cipher = '';
-  for (let i = 0; i < msg.length; i++) {
-    const row = fullKey.charCodeAt(i) - 65;
-    const col = msg.charCodeAt(i) - 65;
-    cipher += String.fromCharCode(((row + col) % 26) + 65);
+  let result = '';
+  for (let i = 0; i < message.length; i++) {
+    const m = message.charCodeAt(i) - 32;
+    const k = key.charCodeAt(i % key.length) - 32;
+    result += String.fromCharCode(((m + k) % 95) + 32);
   }
-  return cipher;
+  return result;
 }
 
 function vigenereDecrypt(cipher, key) {
-  const c = cipher.toUpperCase();
-  const fullKey = generateFullKey(c, key);
-  let plain = '';
-  for (let i = 0; i < c.length; i++) {
-    const row = fullKey.charCodeAt(i) - 65;
-    const col = c.charCodeAt(i) - 65;
-    plain += String.fromCharCode(((col - row + 26) % 26) + 65);
+  let result = '';
+  for (let i = 0; i < cipher.length; i++) {
+    const c = cipher.charCodeAt(i) - 32;
+    const k = key.charCodeAt(i % key.length) - 32;
+    result += String.fromCharCode(((c - k + 95) % 95) + 32);
   }
-  return plain;
+  return result;
 }
 
-/* --- ASCII Cipher (Printable range 32-126) --- */
+/* --- ASCII Cipher (Printable range 32–126) --- */
 function asciiEncrypt(message, key) {
   let result = '';
   for (let i = 0; i < message.length; i++) {
@@ -87,7 +99,7 @@ function asciiDecrypt(cipher, key) {
   return result;
 }
 
-/* --- Diffusion (Reverse text) --- */
+/* --- Diffusion --- */
 function diffuseText(text) {
   return text.split('').reverse().join('');
 }
@@ -95,36 +107,44 @@ function reverseDiffuseText(text) {
   return text.split('').reverse().join('');
 }
 
-/* --- Combined Encryption with step logging --- */
+/* --- Combined Encryption with Confusion & Logs --- */
 function combinedEncryptWithSteps(message, key) {
   let logs = [];
-  logs.push(`Original message: "${message}"`);
+  logs.push(`Original Message: "${message}"`);
+  logs.push(`Original Key: "${key}"`);
 
-  const step1 = vigenereEncrypt(message, key);
-  logs.push(`After Vigenère encrypt (A-Z only): "${step1}"`);
+  const confusedKey = confuseKey(key);
+  logs.push(`Confused Key (+1 ASCII): "${confusedKey}"`);
 
-  const step2 = asciiEncrypt(step1, key);
-  logs.push(`After ASCII encrypt: "${step2}"`);
+  const step1 = vigenereEncrypt(message, confusedKey);
+  logs.push(`Step 1 - Vigenère Encrypt (A–Z only): "${step1}"`);
+
+  const step2 = asciiEncrypt(step1, confusedKey);
+  logs.push(`Step 2 - ASCII Encrypt: "${step2}"`);
 
   const step3 = diffuseText(step2);
-  logs.push(`After diffusion (reverse text): "${step3}"`);
+  logs.push(`Step 3 - Diffusion (Reverse): "${step3}"`);
 
   return { result: step3, logs };
 }
 
-/* --- Combined Decryption with step logging --- */
+/* --- Combined Decryption with Confusion & Logs --- */
 function combinedDecryptWithSteps(cipher, key) {
   let logs = [];
-  logs.push(`Cipher text: "${cipher}"`);
+  logs.push(`Cipher Text: "${cipher}"`);
+  logs.push(`Original Key: "${key}"`);
+
+  const confusedKey = confuseKey(key); // Must be same confused key used during encrypt
+  logs.push(`Confused Key (+1 ASCII): "${confusedKey}"`);
 
   const step1 = reverseDiffuseText(cipher);
-  logs.push(`After reverse diffusion: "${step1}"`);
+  logs.push(`Step 1 - Reverse Diffusion: "${step1}"`);
 
-  const step2 = asciiDecrypt(step1, key);
-  logs.push(`After ASCII decrypt: "${step2}"`);
+  const step2 = asciiDecrypt(step1, confusedKey);
+  logs.push(`Step 2 - ASCII Decrypt: "${step2}"`);
 
-  const step3 = vigenereDecrypt(step2, key);
-  logs.push(`After Vigenère decrypt (A-Z only): "${step3}"`);
+  const step3 = vigenereDecrypt(step2, confusedKey);
+  logs.push(`Step 3 - Vigenère Decrypt (A–Z only): "${step3}"`);
 
   return { result: step3, logs };
 }
